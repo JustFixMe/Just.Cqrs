@@ -1,0 +1,54 @@
+name: .NET Test
+
+on:
+  push:
+    branches: [ main ]
+    tags-ignore:
+      - '**'
+    paths-ignore:
+      - '.vscode'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitea/workflows/publish-*.yaml'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '.vscode'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitea/workflows/publish-*.yaml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: https://github.com/actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.x'
+
+    - name: Restore dependencies
+      run: dotnet restore --nologo
+
+    - name: Build
+      run: dotnet build --nologo --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --nologo --configuration Release --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+
+    - name: Restore local tools
+      run: dotnet tool restore
+
+    - name: Generate coverage report
+      run: dotnet reportgenerator -reports:**/coverage.cobertura.xml -targetdir:./coverage -reporttypes:MarkdownSummary
+
+    - name: Upload dotnet test results
+      #uses: actions/upload-artifact@v4
+      uses: christopherhx/gitea-upload-artifact@v4
+      with:
+        name: coverage-results
+        path: coverage
+        if: ${{ always() }}
