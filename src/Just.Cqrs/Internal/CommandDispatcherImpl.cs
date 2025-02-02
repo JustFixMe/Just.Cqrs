@@ -34,12 +34,12 @@ internal sealed class CommandDispatcherImpl(
         where TCommand : notnull
     {
         var handler = services.GetRequiredService<ICommandHandler<TCommand, TCommandResult>>();
-        var pipeline = services.GetServices<IDispatchBehaviour<TCommand, TCommandResult>>();
+        var pipeline = services.GetServices<IDispatchBehavior<TCommand, TCommandResult>>();
         using var pipelineEnumerator = pipeline.GetEnumerator();
 
         return DispatchDelegateFactory(pipelineEnumerator).Invoke();
 
-        DispatchFurtherDelegate<TCommandResult> DispatchDelegateFactory(IEnumerator<IDispatchBehaviour<TCommand, TCommandResult>> enumerator) =>
+        DispatchFurtherDelegate<TCommandResult> DispatchDelegateFactory(IEnumerator<IDispatchBehavior<TCommand, TCommandResult>> enumerator) =>
             enumerator.MoveNext()
             ? (() => enumerator.Current.Handle(command, DispatchDelegateFactory(enumerator), cancellationToken))
             : (() => handler.Handle(command, cancellationToken));

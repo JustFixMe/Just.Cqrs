@@ -7,11 +7,22 @@
     <Description>Lightweight, easy-to-use C# library designed to simplify the implementation of the Command Query Responsibility Segregation (CQRS) pattern.</Description>
     <Authors>JustFixMe</Authors>
     <Copyright>Copyright (c) 2025 JustFixMe</Copyright>
-    <RepositoryUrl>https://github.com/JustFixMe/Just.Core/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/JustFixMe/Just.Cqrs/</RepositoryUrl>
 
-    <PackageTags>c#;CQRS</PackageTags>
+    <PackageTags>csharp;cqrs;cqrs-pattern;</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
+
+    <ReleaseVersion Condition=" '$(ReleaseVersion)' == '' ">1.0.0</ReleaseVersion>
+    <VersionSuffix Condition=" '$(VersionSuffix)' != '' ">$(VersionSuffix)</VersionSuffix>
+    <VersionPrefix Condition=" '$(VersionSuffix)' != '' ">$(ReleaseVersion)</VersionPrefix>
+    <Version Condition=" '$(VersionSuffix)' == '' ">$(ReleaseVersion)</Version>
+    <AssemblyVersion>$(ReleaseVersion)</AssemblyVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\readme.md" Pack="true" PackagePath=""/>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+  </ItemGroup>
 
 </Project>

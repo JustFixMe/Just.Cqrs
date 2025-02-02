@@ -27,7 +27,7 @@ public static class CqrsServicesExtensions
         {
             services.TryAdd(new ServiceDescriptor(service, impl, lifetime));
         }
-        foreach (var (service, impl, lifetime) in options.Behaviours)
+        foreach (var (service, impl, lifetime) in options.Behaviors)
         {
             services.Add(new ServiceDescriptor(service, impl, lifetime));
         }
@@ -75,43 +75,43 @@ public static class CqrsServicesExtensions
         return options;
     }
 
-    public static CqrsServicesOptions AddOpenBehaviour(this CqrsServicesOptions options, Type behaviour, ServiceLifetime lifetime = ServiceLifetime.Singleton)
+    public static CqrsServicesOptions AddOpenBehavior(this CqrsServicesOptions options, Type Behavior, ServiceLifetime lifetime = ServiceLifetime.Singleton)
     {
-        var interfaces = behaviour.FindInterfaces(
+        var interfaces = Behavior.FindInterfaces(
             static (x, t) => x.IsGenericType && x.GetGenericTypeDefinition() == (Type)t!,
-            typeof(IDispatchBehaviour<,>));
+            typeof(IDispatchBehavior<,>));
 
         if (interfaces.Length == 0)
         {
-            throw new ArgumentException("Supplied type does not implement IDispatchBehaviour<,> interface.", nameof(behaviour));
+            throw new ArgumentException("Supplied type does not implement IDispatchBehavior<,> interface.", nameof(Behavior));
         }
 
-        if (!behaviour.ContainsGenericParameters)
+        if (!Behavior.ContainsGenericParameters)
         {
-            throw new ArgumentException("Supplied type is not sutable for open behaviour.", nameof(behaviour));
+            throw new ArgumentException("Supplied type is not sutable for open Behavior.", nameof(Behavior));
         }
 
-        options.Behaviours.Add((typeof(IDispatchBehaviour<,>), behaviour, lifetime));
+        options.Behaviors.Add((typeof(IDispatchBehavior<,>), Behavior, lifetime));
         return options;
     }
 
-    public static CqrsServicesOptions AddBehaviour<TBehaviour>(this CqrsServicesOptions options, ServiceLifetime lifetime = ServiceLifetime.Singleton)
-        where TBehaviour : notnull, IDispatchBehaviour
+    public static CqrsServicesOptions AddBehavior<TBehavior>(this CqrsServicesOptions options, ServiceLifetime lifetime = ServiceLifetime.Singleton)
+        where TBehavior : notnull, IDispatchBehavior
     {
-        var type = typeof(TBehaviour);
+        var type = typeof(TBehavior);
 
         var interfaces = type.FindInterfaces(
             static (x, t) => x.IsGenericType && x.GetGenericTypeDefinition() == (Type)t!,
-            typeof(IDispatchBehaviour<,>));
+            typeof(IDispatchBehavior<,>));
 
         if (interfaces.Length == 0)
         {
-            throw new InvalidOperationException("Supplied type does not implement IDispatchBehaviour<,> interface.");
+            throw new InvalidOperationException("Supplied type does not implement IDispatchBehavior<,> interface.");
         }
 
         foreach (var interfaceType in interfaces)
         {
-            options.Behaviours.Add((
+            options.Behaviors.Add((
                 interfaceType,
                 type,
                 lifetime));

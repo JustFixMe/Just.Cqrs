@@ -42,12 +42,12 @@ public class Dispatch
         await commandHandler.Received(1).Handle(testCommand, CancellationToken.None);
     }
 
-    public class TestOpenBehaviour<TRequest, TResponse> : IDispatchBehaviour<TRequest, TResponse>
+    public class TestOpenBehavior<TRequest, TResponse> : IDispatchBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
         private readonly Action<TRequest> _callback;
 
-        public TestOpenBehaviour(Action<TRequest> callback)
+        public TestOpenBehavior(Action<TRequest> callback)
         {
             _callback = callback;
         }
@@ -60,7 +60,7 @@ public class Dispatch
     }
 
     [Fact]
-    public async Task WhenPipelineConfigured_ShouldCallAllBehavioursInOrder()
+    public async Task WhenPipelineConfigured_ShouldCallAllBehaviorsInOrder()
     {
         // Given
         var testCommand = new TestCommand();
@@ -72,15 +72,15 @@ public class Dispatch
             .Returns(testCommandResult)
             .AndDoes(_ => calls.Add("commandHandler"));
 
-        var firstBehaviour = Substitute.For<IDispatchBehaviour<TestCommand, TestCommandResult>>();
-        firstBehaviour.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
+        var firstBehavior = Substitute.For<IDispatchBehavior<TestCommand, TestCommandResult>>();
+        firstBehavior.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestCommandResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("firstBehaviour"));
+            .AndDoes(_ => calls.Add("firstBehavior"));
 
-        var secondBehaviour = Substitute.For<IDispatchBehaviour<TestCommand, TestCommandResult>>();
-        secondBehaviour.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
+        var secondBehavior = Substitute.For<IDispatchBehavior<TestCommand, TestCommandResult>>();
+        secondBehavior.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestCommandResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("secondBehaviour"));
+            .AndDoes(_ => calls.Add("secondBehavior"));
 
         ServiceCollection serviceCollection =
         [
@@ -90,22 +90,22 @@ public class Dispatch
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestCommand, TestCommandResult>),
-                (IServiceProvider _) => firstBehaviour,
+                typeof(IDispatchBehavior<TestCommand, TestCommandResult>),
+                (IServiceProvider _) => firstBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestCommand, TestCommandResult>),
-                (IServiceProvider _) => secondBehaviour,
+                typeof(IDispatchBehavior<TestCommand, TestCommandResult>),
+                (IServiceProvider _) => secondBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<,>),
-                typeof(TestOpenBehaviour<,>),
+                typeof(IDispatchBehavior<,>),
+                typeof(TestOpenBehavior<,>),
                 ServiceLifetime.Transient
             ),
         ];
-        serviceCollection.AddTransient<Action<TestCommand>>(_ => (TestCommand _) => calls.Add("thirdBehaviour"));
+        serviceCollection.AddTransient<Action<TestCommand>>(_ => (TestCommand _) => calls.Add("thirdBehavior"));
         var services = serviceCollection.BuildServiceProvider();
 
         var sut = new CommandDispatcherImpl(services, new ConcurrentMethodsCache());
@@ -115,11 +115,11 @@ public class Dispatch
 
         // Then
         result.ShouldBeSameAs(testCommandResult);
-        await firstBehaviour.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
-        await secondBehaviour.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
+        await firstBehavior.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
+        await secondBehavior.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
         await commandHandler.Received(1).Handle(testCommand, CancellationToken.None);
 
-        calls.ShouldBe(["firstBehaviour", "secondBehaviour", "thirdBehaviour", "commandHandler"]);
+        calls.ShouldBe(["firstBehavior", "secondBehavior", "thirdBehavior", "commandHandler"]);
     }
 
     [Fact]
@@ -136,15 +136,15 @@ public class Dispatch
             .Returns(testCommandResult)
             .AndDoes(_ => calls.Add("commandHandler"));
 
-        var firstBehaviour = Substitute.For<IDispatchBehaviour<TestCommand, TestCommandResult>>();
-        firstBehaviour.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
+        var firstBehavior = Substitute.For<IDispatchBehavior<TestCommand, TestCommandResult>>();
+        firstBehavior.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestCommandResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("firstBehaviour"));
+            .AndDoes(_ => calls.Add("firstBehavior"));
 
-        var secondBehaviour = Substitute.For<IDispatchBehaviour<TestCommand, TestCommandResult>>();
-        secondBehaviour.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
+        var secondBehavior = Substitute.For<IDispatchBehavior<TestCommand, TestCommandResult>>();
+        secondBehavior.Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ValueTask.FromResult(testCommandResultAborted))
-            .AndDoes(_ => calls.Add("secondBehaviour"));
+            .AndDoes(_ => calls.Add("secondBehavior"));
 
         ServiceCollection serviceCollection =
         [
@@ -154,22 +154,22 @@ public class Dispatch
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestCommand, TestCommandResult>),
-                (IServiceProvider _) => firstBehaviour,
+                typeof(IDispatchBehavior<TestCommand, TestCommandResult>),
+                (IServiceProvider _) => firstBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestCommand, TestCommandResult>),
-                (IServiceProvider _) => secondBehaviour,
+                typeof(IDispatchBehavior<TestCommand, TestCommandResult>),
+                (IServiceProvider _) => secondBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<,>),
-                typeof(TestOpenBehaviour<,>),
+                typeof(IDispatchBehavior<,>),
+                typeof(TestOpenBehavior<,>),
                 ServiceLifetime.Transient
             ),
         ];
-        serviceCollection.AddTransient<Action<TestCommand>>(_ => (TestCommand _) => calls.Add("thirdBehaviour"));
+        serviceCollection.AddTransient<Action<TestCommand>>(_ => (TestCommand _) => calls.Add("thirdBehavior"));
         var services = serviceCollection.BuildServiceProvider();
 
         var sut = new CommandDispatcherImpl(services, new ConcurrentMethodsCache());
@@ -179,10 +179,10 @@ public class Dispatch
 
         // Then
         result.ShouldBeSameAs(testCommandResultAborted);
-        await firstBehaviour.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
-        await secondBehaviour.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
+        await firstBehavior.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
+        await secondBehavior.Received(1).Handle(testCommand, Arg.Any<DispatchFurtherDelegate<TestCommandResult>>(), Arg.Any<CancellationToken>());
         await commandHandler.Received(0).Handle(testCommand, CancellationToken.None);
 
-        calls.ShouldBe(["firstBehaviour", "secondBehaviour"]);
+        calls.ShouldBe(["firstBehavior", "secondBehavior"]);
     }
 }

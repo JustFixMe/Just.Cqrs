@@ -12,7 +12,7 @@ public delegate ValueTask<TResponse> DispatchFurtherDelegate<TResponse>();
 /// <summary>
 /// Marker interface for static type checking. Should not be used directly.
 /// </summary>
-public interface IDispatchBehaviour
+public interface IDispatchBehavior
 {
     Type RequestType { get; }
     Type ResponseType { get; }
@@ -23,7 +23,7 @@ public interface IDispatchBehaviour
 /// </summary>
 /// <typeparam name="TRequest">Request type</typeparam>
 /// <typeparam name="TResponse">Result type of dispatching command/query</typeparam>
-public interface IDispatchBehaviour<in TRequest, TResponse> : IDispatchBehaviour
+public interface IDispatchBehavior<in TRequest, TResponse> : IDispatchBehavior
     where TRequest : notnull
 {
     ValueTask<TResponse> Handle(
@@ -32,7 +32,7 @@ public interface IDispatchBehaviour<in TRequest, TResponse> : IDispatchBehaviour
         CancellationToken cancellationToken);
 
     [ExcludeFromCodeCoverage]
-    Type IDispatchBehaviour.RequestType => typeof(TRequest);
+    Type IDispatchBehavior.RequestType => typeof(TRequest);
     [ExcludeFromCodeCoverage]
-    Type IDispatchBehaviour.ResponseType => typeof(TResponse);
+    Type IDispatchBehavior.ResponseType => typeof(TResponse);
 }

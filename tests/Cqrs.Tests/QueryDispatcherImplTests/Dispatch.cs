@@ -42,12 +42,12 @@ public class Dispatch
         await queryHandler.Received(1).Handle(testQuery, CancellationToken.None);
     }
 
-    public class TestOpenBehaviour<TRequest, TResponse> : IDispatchBehaviour<TRequest, TResponse>
+    public class TestOpenBehavior<TRequest, TResponse> : IDispatchBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
         private readonly Action<TRequest> _callback;
 
-        public TestOpenBehaviour(Action<TRequest> callback)
+        public TestOpenBehavior(Action<TRequest> callback)
         {
             _callback = callback;
         }
@@ -60,7 +60,7 @@ public class Dispatch
     }
 
     [Fact]
-    public async Task WhenPipelineConfigured_ShouldCallAllBehavioursInOrder()
+    public async Task WhenPipelineConfigured_ShouldCallAllBehaviorsInOrder()
     {
         // Given
         var testQuery = new TestQuery();
@@ -72,15 +72,15 @@ public class Dispatch
             .Returns(testQueryResult)
             .AndDoes(_ => calls.Add("queryHandler"));
 
-        var firstBehaviour = Substitute.For<IDispatchBehaviour<TestQuery, TestQueryResult>>();
-        firstBehaviour.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
+        var firstBehavior = Substitute.For<IDispatchBehavior<TestQuery, TestQueryResult>>();
+        firstBehavior.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestQueryResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("firstBehaviour"));
+            .AndDoes(_ => calls.Add("firstBehavior"));
 
-        var secondBehaviour = Substitute.For<IDispatchBehaviour<TestQuery, TestQueryResult>>();
-        secondBehaviour.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
+        var secondBehavior = Substitute.For<IDispatchBehavior<TestQuery, TestQueryResult>>();
+        secondBehavior.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestQueryResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("secondBehaviour"));
+            .AndDoes(_ => calls.Add("secondBehavior"));
 
         ServiceCollection serviceCollection =
         [
@@ -90,22 +90,22 @@ public class Dispatch
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestQuery, TestQueryResult>),
-                (IServiceProvider _) => firstBehaviour,
+                typeof(IDispatchBehavior<TestQuery, TestQueryResult>),
+                (IServiceProvider _) => firstBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestQuery, TestQueryResult>),
-                (IServiceProvider _) => secondBehaviour,
+                typeof(IDispatchBehavior<TestQuery, TestQueryResult>),
+                (IServiceProvider _) => secondBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<,>),
-                typeof(TestOpenBehaviour<,>),
+                typeof(IDispatchBehavior<,>),
+                typeof(TestOpenBehavior<,>),
                 ServiceLifetime.Transient
             ),
         ];
-        serviceCollection.AddTransient<Action<TestQuery>>(_ => (TestQuery _) => calls.Add("thirdBehaviour"));
+        serviceCollection.AddTransient<Action<TestQuery>>(_ => (TestQuery _) => calls.Add("thirdBehavior"));
         var services = serviceCollection.BuildServiceProvider();
 
         var sut = new QueryDispatcherImpl(services, new ConcurrentMethodsCache());
@@ -115,11 +115,11 @@ public class Dispatch
 
         // Then
         result.ShouldBeSameAs(testQueryResult);
-        await firstBehaviour.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
-        await secondBehaviour.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
+        await firstBehavior.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
+        await secondBehavior.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
         await queryHandler.Received(1).Handle(testQuery, CancellationToken.None);
 
-        calls.ShouldBe(["firstBehaviour", "secondBehaviour", "thirdBehaviour", "queryHandler"]);
+        calls.ShouldBe(["firstBehavior", "secondBehavior", "thirdBehavior", "queryHandler"]);
     }
 
     [Fact]
@@ -136,15 +136,15 @@ public class Dispatch
             .Returns(testQueryResult)
             .AndDoes(_ => calls.Add("queryHandler"));
 
-        var firstBehaviour = Substitute.For<IDispatchBehaviour<TestQuery, TestQueryResult>>();
-        firstBehaviour.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
+        var firstBehavior = Substitute.For<IDispatchBehavior<TestQuery, TestQueryResult>>();
+        firstBehavior.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ((DispatchFurtherDelegate<TestQueryResult>)args[1]).Invoke())
-            .AndDoes(_ => calls.Add("firstBehaviour"));
+            .AndDoes(_ => calls.Add("firstBehavior"));
 
-        var secondBehaviour = Substitute.For<IDispatchBehaviour<TestQuery, TestQueryResult>>();
-        secondBehaviour.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
+        var secondBehavior = Substitute.For<IDispatchBehavior<TestQuery, TestQueryResult>>();
+        secondBehavior.Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>())
             .Returns(args => ValueTask.FromResult(testQueryResultAborted))
-            .AndDoes(_ => calls.Add("secondBehaviour"));
+            .AndDoes(_ => calls.Add("secondBehavior"));
 
         ServiceCollection serviceCollection =
         [
@@ -154,22 +154,22 @@ public class Dispatch
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestQuery, TestQueryResult>),
-                (IServiceProvider _) => firstBehaviour,
+                typeof(IDispatchBehavior<TestQuery, TestQueryResult>),
+                (IServiceProvider _) => firstBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<TestQuery, TestQueryResult>),
-                (IServiceProvider _) => secondBehaviour,
+                typeof(IDispatchBehavior<TestQuery, TestQueryResult>),
+                (IServiceProvider _) => secondBehavior,
                 ServiceLifetime.Transient
             ),
             new ServiceDescriptor(
-                typeof(IDispatchBehaviour<,>),
-                typeof(TestOpenBehaviour<,>),
+                typeof(IDispatchBehavior<,>),
+                typeof(TestOpenBehavior<,>),
                 ServiceLifetime.Transient
             ),
         ];
-        serviceCollection.AddTransient<Action<TestQuery>>(_ => (TestQuery _) => calls.Add("thirdBehaviour"));
+        serviceCollection.AddTransient<Action<TestQuery>>(_ => (TestQuery _) => calls.Add("thirdBehavior"));
         var services = serviceCollection.BuildServiceProvider();
 
         var sut = new QueryDispatcherImpl(services, new ConcurrentMethodsCache());
@@ -179,10 +179,10 @@ public class Dispatch
 
         // Then
         result.ShouldBeSameAs(testQueryResultAborted);
-        await firstBehaviour.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
-        await secondBehaviour.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
+        await firstBehavior.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
+        await secondBehavior.Received(1).Handle(testQuery, Arg.Any<DispatchFurtherDelegate<TestQueryResult>>(), Arg.Any<CancellationToken>());
         await queryHandler.Received(0).Handle(testQuery, CancellationToken.None);
 
-        calls.ShouldBe(["firstBehaviour", "secondBehaviour"]);
+        calls.ShouldBe(["firstBehavior", "secondBehavior"]);
     }
 }

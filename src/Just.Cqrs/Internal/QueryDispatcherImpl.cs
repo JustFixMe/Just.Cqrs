@@ -34,12 +34,12 @@ internal sealed class QueryDispatcherImpl(
         where TQuery : notnull
     {
         var handler = services.GetRequiredService<IQueryHandler<TQuery, TQueryResult>>();
-        var pipeline = services.GetServices<IDispatchBehaviour<TQuery, TQueryResult>>();
+        var pipeline = services.GetServices<IDispatchBehavior<TQuery, TQueryResult>>();
         using var pipelineEnumerator = pipeline.GetEnumerator();
 
         return DispatchDelegateFactory(pipelineEnumerator).Invoke();
 
-        DispatchFurtherDelegate<TQueryResult> DispatchDelegateFactory(IEnumerator<IDispatchBehaviour<TQuery, TQueryResult>> enumerator) =>
+        DispatchFurtherDelegate<TQueryResult> DispatchDelegateFactory(IEnumerator<IDispatchBehavior<TQuery, TQueryResult>> enumerator) =>
             enumerator.MoveNext()
             ? (() => enumerator.Current.Handle(query, DispatchDelegateFactory(enumerator), cancellationToken))
             : (() => handler.Handle(query, cancellationToken));

@@ -3,10 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Cqrs.Tests.CqrsServicesExtensionsTests;
 
-public class AddOpenBehaviour
+public class AddOpenBehavior
 {
     [ExcludeFromCodeCoverage]
-    public class TestOpenBehaviour<TRequest, TResponse> : IDispatchBehaviour<TRequest, TResponse>
+    public class TestOpenBehavior<TRequest, TResponse> : IDispatchBehavior<TRequest, TResponse>
         where TRequest: notnull
     {
         public ValueTask<TResponse> Handle(TRequest request, DispatchFurtherDelegate<TResponse> next, CancellationToken cancellationToken)
@@ -19,27 +19,27 @@ public class AddOpenBehaviour
     [InlineData(ServiceLifetime.Transient)]
     [InlineData(ServiceLifetime.Scoped)]
     [InlineData(ServiceLifetime.Singleton)]
-    public void WhenCalled_ShouldRegisterOpenDispatchBehaviour(ServiceLifetime lifetime)
+    public void WhenCalled_ShouldRegisterOpenDispatchBehavior(ServiceLifetime lifetime)
     {
         // Given
         ServiceCollection services = new();
 
         // When
         services.AddCqrs(opt => opt
-            .AddOpenBehaviour(typeof(TestOpenBehaviour<,>), lifetime));
+            .AddOpenBehavior(typeof(TestOpenBehavior<,>), lifetime));
 
         // Then
         services.ShouldContain(
             elementPredicate: descriptor => 
-                descriptor.ServiceType == typeof(IDispatchBehaviour<,>)
-                && descriptor.ImplementationType == typeof(TestOpenBehaviour<,>)
+                descriptor.ServiceType == typeof(IDispatchBehavior<,>)
+                && descriptor.ImplementationType == typeof(TestOpenBehavior<,>)
                 && descriptor.Lifetime == lifetime,
             expectedCount: 1
         );
     }
 
     [ExcludeFromCodeCoverage]
-    public class InvalidOpenBehaviour : IDispatchBehaviour
+    public class InvalidOpenBehavior : IDispatchBehavior
     {
         public Type RequestType => throw new NotImplementedException();
 
@@ -53,18 +53,18 @@ public class AddOpenBehaviour
         ServiceCollection services = new();
 
         // When
-        var invalidOpenDispatchBehaviourType = typeof(InvalidOpenBehaviour);
+        var invalidOpenDispatchBehaviorType = typeof(InvalidOpenBehavior);
 
         // Then
         Should.Throw<ArgumentException>(() => services.AddCqrs(opt => opt
-            .AddOpenBehaviour(invalidOpenDispatchBehaviourType))
+            .AddOpenBehavior(invalidOpenDispatchBehaviorType))
         );
     }
 
     public class TestCommand {}
     public class TestCommandResult {}
     [ExcludeFromCodeCoverage]
-    public class NonGenericTestOpenBehaviour : IDispatchBehaviour<TestCommand, TestCommandResult>
+    public class NonGenericTestOpenBehavior : IDispatchBehavior<TestCommand, TestCommandResult>
     {
         public ValueTask<TestCommandResult> Handle(TestCommand request, DispatchFurtherDelegate<TestCommandResult> next, CancellationToken cancellationToken)
         {
@@ -79,11 +79,11 @@ public class AddOpenBehaviour
         ServiceCollection services = new();
 
         // When
-        var nonGenericOpenDispatchBehaviourType = typeof(NonGenericTestOpenBehaviour);
+        var nonGenericOpenDispatchBehaviorType = typeof(NonGenericTestOpenBehavior);
 
         // Then
         Should.Throw<ArgumentException>(() => services.AddCqrs(opt => opt
-            .AddOpenBehaviour(nonGenericOpenDispatchBehaviourType))
+            .AddOpenBehavior(nonGenericOpenDispatchBehaviorType))
         );
     }
 }

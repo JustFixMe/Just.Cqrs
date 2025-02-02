@@ -3,12 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Cqrs.Tests.CqrsServicesExtensionsTests;
 
-public class AddBehaviour
+public class AddBehavior
 {
     public class TestCommand {}
     public class TestCommandResult {}
     [ExcludeFromCodeCoverage]
-    public class NonGenericTestOpenBehaviour : IDispatchBehaviour<TestCommand, TestCommandResult>
+    public class NonGenericTestOpenBehavior : IDispatchBehavior<TestCommand, TestCommandResult>
     {
         public ValueTask<TestCommandResult> Handle(TestCommand request, DispatchFurtherDelegate<TestCommandResult> next, CancellationToken cancellationToken)
         {
@@ -20,27 +20,27 @@ public class AddBehaviour
     [InlineData(ServiceLifetime.Transient)]
     [InlineData(ServiceLifetime.Scoped)]
     [InlineData(ServiceLifetime.Singleton)]
-    public void WhenCalled_ShouldRegisterDispatchBehaviour(ServiceLifetime lifetime)
+    public void WhenCalled_ShouldRegisterDispatchBehavior(ServiceLifetime lifetime)
     {
         // Given
         ServiceCollection services = new();
 
         // When
         services.AddCqrs(opt => opt
-            .AddBehaviour<NonGenericTestOpenBehaviour>(lifetime));
+            .AddBehavior<NonGenericTestOpenBehavior>(lifetime));
 
         // Then
         services.ShouldContain(
             elementPredicate: descriptor => 
-                descriptor.ServiceType == typeof(IDispatchBehaviour<TestCommand, TestCommandResult>)
-                && descriptor.ImplementationType == typeof(NonGenericTestOpenBehaviour)
+                descriptor.ServiceType == typeof(IDispatchBehavior<TestCommand, TestCommandResult>)
+                && descriptor.ImplementationType == typeof(NonGenericTestOpenBehavior)
                 && descriptor.Lifetime == lifetime,
             expectedCount: 1
         );
     }
 
     [ExcludeFromCodeCoverage]
-    public class InvalidTestBehaviour : IDispatchBehaviour
+    public class InvalidTestBehavior : IDispatchBehavior
     {
         public Type RequestType => throw new NotImplementedException();
 
@@ -57,7 +57,7 @@ public class AddBehaviour
 
         // Then
         Should.Throw<InvalidOperationException>(() => services.AddCqrs(opt => opt
-            .AddBehaviour<InvalidTestBehaviour>())
+            .AddBehavior<InvalidTestBehavior>())
         );
     }
 }
