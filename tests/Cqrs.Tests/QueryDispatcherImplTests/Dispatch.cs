@@ -6,6 +6,10 @@ namespace Cqrs.Tests.QueryDispatcherImplTests;
 
 public class Dispatch
 {
+    public abstract class TestQueryHandler : IQueryHandler<TestQuery, TestQueryResult>
+    {
+        public abstract ValueTask<TestQueryResult> Handle(TestQuery query, CancellationToken cancellation);
+    }
     public class TestQuery : IKnownQuery<TestQueryResult> {}
     public class TestQueryResult {}
 
@@ -19,7 +23,7 @@ public class Dispatch
         var testQuery = new TestQuery();
         var testQueryResult = new TestQueryResult();
 
-        var queryHandler = Substitute.For<IQueryHandler<TestQuery, TestQueryResult>>();
+        var queryHandler = Substitute.For<TestQueryHandler>();
         queryHandler.Handle(testQuery, CancellationToken.None).Returns(testQueryResult);
 
         ServiceCollection serviceCollection =
@@ -67,7 +71,7 @@ public class Dispatch
         var testQueryResult = new TestQueryResult();
         List<string> calls = [];
 
-        var queryHandler = Substitute.For<IQueryHandler<TestQuery, TestQueryResult>>();
+        var queryHandler = Substitute.For<TestQueryHandler>();
         queryHandler.Handle(testQuery, CancellationToken.None)
             .Returns(testQueryResult)
             .AndDoes(_ => calls.Add("queryHandler"));
@@ -131,7 +135,7 @@ public class Dispatch
         var testQueryResultAborted = new TestQueryResult();
         List<string> calls = [];
 
-        var queryHandler = Substitute.For<IQueryHandler<TestQuery, TestQueryResult>>();
+        var queryHandler = Substitute.For<TestQueryHandler>();
         queryHandler.Handle(testQuery, CancellationToken.None)
             .Returns(testQueryResult)
             .AndDoes(_ => calls.Add("queryHandler"));
@@ -184,5 +188,54 @@ public class Dispatch
         await queryHandler.Received(0).Handle(testQuery, CancellationToken.None);
 
         calls.ShouldBe(["firstBehavior", "secondBehavior"]);
+    }
+
+    public abstract class AnotherTestQueryHandler : IQueryHandler<TestQuery, AnotherTestQueryResult>
+    {
+        public abstract ValueTask<AnotherTestQueryResult> Handle(TestQuery query, CancellationToken cancellation);
+    }
+    public class AnotherTestQueryResult {}
+
+    [Fact]
+    public async Task WhenTwoHandlersWithDifferentResultTypesRegisteredForOneQueryType_ShouldCorrectlyDispatchToBoth() // Fix to Cache Key Collision
+    {
+        // Given
+        var testQuery = new TestQuery();
+        var testQueryResult = new TestQueryResult();
+        var anotherTestQueryResult = new AnotherTestQueryResult();
+    
+        var queryHandler = Substitute.For<TestQueryHandler>();
+        queryHandler.Handle(testQuery, CancellationToken.None).Returns(testQueryResult);
+
+        var anotherQueryHandler = Substitute.For<AnotherTestQueryHandler>();
+        anotherQueryHandler.Handle(testQuery, CancellationToken.None).Returns(anotherTestQueryResult);
+
+        ServiceCollection serviceCollection =
+        [
+            new ServiceDescriptor(
+                typeof(IQueryHandler<TestQuery, TestQueryResult>),
+                (IServiceProvider _) => queryHandler,
+                ServiceLifetime.Transient
+            ),
+            new ServiceDescriptor(
+                typeof(IQueryHandler<TestQuery, AnotherTestQueryResult>),
+                (IServiceProvider _) => anotherQueryHandler,
+                ServiceLifetime.Transient
+            ),
+        ];
+        var services = serviceCollection.BuildServiceProvider();
+
+        var sut = new QueryDispatcherImpl(services, new ConcurrentMethodsCache());
+
+        // When
+        var result = await sut.Dispatch(testQuery, CancellationToken.None);
+        var anotherResult = await sut.Dispatch<AnotherTestQueryResult>(testQuery, CancellationToken.None);
+
+        // Then
+        result.ShouldBeSameAs(testQueryResult);
+        await queryHandler.Received(1).Handle(testQuery, CancellationToken.None);
+
+        anotherResult.ShouldBeSameAs(anotherTestQueryResult);
+        await anotherQueryHandler.Received(1).Handle(testQuery, CancellationToken.None);
     }
 }

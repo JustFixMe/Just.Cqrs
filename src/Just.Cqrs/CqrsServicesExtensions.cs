@@ -8,15 +8,19 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class CqrsServicesExtensions
 {
+    /// <summary>
+    /// Adds all configured Command and Query handlers, behaviors and default implementations of <see cref="ICommandDispatcher"/> and <see cref="IQueryDispatcher"/>.
+    /// </summary>
+    /// <remarks>
+    /// If called multiple times <see cref="ICommandDispatcher"/> and <see cref="IQueryDispatcher"/> will still be added once
+    /// </remarks>
     public static IServiceCollection AddCqrs(this IServiceCollection services, Action<CqrsServicesOptions>? configure = null)
     {
         var options = new CqrsServicesOptions(services);
         configure?.Invoke(options);
 
-        services.TryAddKeyedSingleton<IMethodsCache, ConcurrentMethodsCache>(MethodsCacheServiceKey.DispatchCommand);
+        services.TryAddSingleton<IMethodsCache, ConcurrentMethodsCache>();
         services.TryAddTransient<ICommandDispatcher, CommandDispatcherImpl>();
-
-        services.TryAddKeyedSingleton<IMethodsCache, ConcurrentMethodsCache>(MethodsCacheServiceKey.DispatchQuery);
         services.TryAddTransient<IQueryDispatcher, QueryDispatcherImpl>();
 
         foreach (var (service, impl, lifetime) in options.CommandHandlers)
@@ -75,23 +79,23 @@ public static class CqrsServicesExtensions
         return options;
     }
 
-    public static CqrsServicesOptions AddOpenBehavior(this CqrsServicesOptions options, Type Behavior, ServiceLifetime lifetime = ServiceLifetime.Singleton)
+    public static CqrsServicesOptions AddOpenBehavior(this CqrsServicesOptions options, Type behavior, ServiceLifetime lifetime = ServiceLifetime.Singleton)
     {
-        var interfaces = Behavior.FindInterfaces(
+        var interfaces = behavior.FindInterfaces(
             static (x, t) => x.IsGenericType && x.GetGenericTypeDefinition() == (Type)t!,
             typeof(IDispatchBehavior<,>));
 
         if (interfaces.Length == 0)
         {
-            throw new ArgumentException("Supplied type does not implement IDispatchBehavior<,> interface.", nameof(Behavior));
+            throw new ArgumentException("Supplied type does not implement IDispatchBehavior<,> interface.", nameof(behavior));
         }
 
-        if (!Behavior.ContainsGenericParameters)
+        if (!behavior.ContainsGenericParameters)
         {
-            throw new ArgumentException("Supplied type is not sutable for open Behavior.", nameof(Behavior));
+            throw new ArgumentException("Supplied type is not suitable for open Behavior.", nameof(behavior));
         }
 
-        options.Behaviors.Add((typeof(IDispatchBehavior<,>), Behavior, lifetime));
+        options.Behaviors.Add((typeof(IDispatchBehavior<,>), behavior, lifetime));
         return options;
     }
 

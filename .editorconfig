@@ -25,6 +25,15 @@ tab_width = 4
 end_of_line = lf
 insert_final_newline = true
 
+#### .NET diagnostic severity
+[*.{cs,vb}]
+
+# CS9124: Parameter is captured into the state of the enclosing type and its value is also used to initialize a field, property, or event.
+dotnet_diagnostic.CS9124.severity = error
+
+# CS9107: Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
+dotnet_diagnostic.CS9107.severity = error
+
 #### .NET Coding Conventions ####
 [*.{cs,vb}]
 

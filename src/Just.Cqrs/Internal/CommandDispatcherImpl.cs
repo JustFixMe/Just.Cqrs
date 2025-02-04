@@ -6,27 +6,25 @@ namespace Just.Cqrs.Internal;
 
 internal sealed class CommandDispatcherImpl(
     IServiceProvider services,
-    [FromKeyedServices(MethodsCacheServiceKey.DispatchCommand)]IMethodsCache methodsCache
-) : ICommandDispatcher
+    IMethodsCache methodsCache
+) : DispatcherBase(methodsCache), ICommandDispatcher
 {
+    private static readonly Func<(Type RequestType, Type ResponseType), Delegate> CreateDispatchCommandDelegate;
+    static CommandDispatcherImpl()
+    {
+        var dispatcherType = typeof(CommandDispatcherImpl);
+        var genericDispatchImplMethod = dispatcherType
+            .GetMethod(nameof(DispatchCommandImpl), BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"{nameof(DispatchCommandImpl)} method not found.");
+        CreateDispatchCommandDelegate = methodsCacheKey => CreateDispatchDelegate(methodsCacheKey, dispatcherType, genericDispatchImplMethod);
+    }
+
     [ExcludeFromCodeCoverage]
     public ValueTask<TCommandResult> Dispatch<TCommandResult>(object command, CancellationToken cancellationToken)
-        => DispatchCommand<TCommandResult>(command, cancellationToken);
+        => DispatchInternal<TCommandResult>(CreateDispatchCommandDelegate, command, cancellationToken);
 
     public ValueTask<TCommandResult> Dispatch<TCommandResult>(IKnownCommand<TCommandResult> command, CancellationToken cancellationToken)
-        => DispatchCommand<TCommandResult>(command, cancellationToken);
-
-    private ValueTask<TCommandResult> DispatchCommand<TCommandResult>(object command, CancellationToken cancellationToken)
-    {
-        var commandType = command.GetType();
-
-        var dispatchCommandMethod = methodsCache.GetOrAdd(commandType, static t => typeof(CommandDispatcherImpl)
-            .GetMethod(nameof(DispatchCommandImpl), BindingFlags.Instance | BindingFlags.NonPublic)!
-            .MakeGenericMethod(t, typeof(TCommandResult)));
-
-        return (ValueTask<TCommandResult>)dispatchCommandMethod
-            .Invoke(this, [command, cancellationToken])!;
-    }
+        => DispatchInternal<TCommandResult>(CreateDispatchCommandDelegate, command, cancellationToken);
 
     private ValueTask<TCommandResult> DispatchCommandImpl<TCommand, TCommandResult>(
         TCommand command,
@@ -35,13 +33,7 @@ internal sealed class CommandDispatcherImpl(
     {
         var handler = services.GetRequiredService<ICommandHandler<TCommand, TCommandResult>>();
         var pipeline = services.GetServices<IDispatchBehavior<TCommand, TCommandResult>>();
-        using var pipelineEnumerator = pipeline.GetEnumerator();
 
-        return DispatchDelegateFactory(pipelineEnumerator).Invoke();
-
-        DispatchFurtherDelegate<TCommandResult> DispatchDelegateFactory(IEnumerator<IDispatchBehavior<TCommand, TCommandResult>> enumerator) =>
-            enumerator.MoveNext()
-            ? (() => enumerator.Current.Handle(command, DispatchDelegateFactory(enumerator), cancellationToken))
-            : (() => handler.Handle(command, cancellationToken));
+        return DispatchDelegateFactory(command, handler, pipeline, cancellationToken).Invoke();
     }
 }

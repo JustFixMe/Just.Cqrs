@@ -1,17 +1,10 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace Just.Cqrs.Internal;
 
 internal interface IMethodsCache
 {
-    MethodInfo GetOrAdd(Type key, Func<Type, MethodInfo> valueFactory);
+    Delegate GetOrAdd((Type RequestType, Type ResponseType) key, Func<(Type RequestType, Type ResponseType), Delegate> valueFactory);
 }
 
-internal static class MethodsCacheServiceKey
-{
-    internal const string DispatchQuery = "q";
-    internal const string DispatchCommand = "c";
-}
-
-internal sealed class ConcurrentMethodsCache : ConcurrentDictionary<Type, MethodInfo>, IMethodsCache;
+internal sealed class ConcurrentMethodsCache : ConcurrentDictionary<(Type RequestType, Type ResponseType), Delegate>, IMethodsCache;
