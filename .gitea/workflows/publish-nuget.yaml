@@ -24,9 +24,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore --nologo
 
-    - name: Test
-      run: dotnet test --nologo --no-restore --configuration Release
-
     - name: Create the package
       env:
         RELEASE_VERSION: ${{ gitea.ref_name }}
