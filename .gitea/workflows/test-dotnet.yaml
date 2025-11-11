@@ -21,34 +21,48 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: .NET tests
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      TEST_PROJECT: ./tests/Cqrs.Tests/Cqrs.Tests.csproj
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup .NET
       uses: https://github.com/actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.x'
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
 
     - name: Restore dependencies
-      run: dotnet restore --nologo
+      run: dotnet restore
 
-    - name: Build
-      run: dotnet build --nologo --configuration Release --no-restore
+    - name: Build .NET 10.0
+      run: dotnet build --no-restore --framework net10.0 --configuration Release ${{ env.TEST_PROJECT }}
 
-    - name: Test
-      run: dotnet test --nologo --configuration Release --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+    - name: Build .NET 9.0
+      run: dotnet build --no-restore --framework net9.0 --configuration Release ${{ env.TEST_PROJECT }}
 
-    - name: Restore local tools
-      run: dotnet tool restore
+    - name: Build .NET 8.0
+      run: dotnet build --no-restore --framework net8.0 --configuration Release ${{ env.TEST_PROJECT }}
 
-    - name: Generate coverage report
-      run: dotnet reportgenerator -reports:**/coverage.cobertura.xml -targetdir:./coverage -reporttypes:MarkdownSummary
+    - name: Test .NET 10.0
+      run: dotnet run --no-build --framework net10.0 --configuration Release --project ${{ env.TEST_PROJECT }} -- -trx TestResults/results-net10.trx
+
+    - name: Test .NET 9.0
+      run: dotnet run --no-build --framework net9.0 --configuration Release --project ${{ env.TEST_PROJECT }} -- -trx TestResults/results-net9.trx
+
+    - name: Test .NET 8.0
+      run: dotnet run --no-build --framework net8.0 --configuration Release --project ${{ env.TEST_PROJECT }} -- -trx TestResults/results-net8.trx
 
     - name: Upload dotnet test results
-      #uses: actions/upload-artifact@v4
-      uses: christopherhx/gitea-upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
-        name: coverage-results
-        path: coverage
+        name: test-results
+        path: TestResults
         if: ${{ always() }}
+        retention-days: 30

@@ -10,13 +10,16 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup .NET
       uses: https://github.com/actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.x
+        dotnet-version: 10.x
 
     - name: Restore dependencies
       run: dotnet restore --nologo

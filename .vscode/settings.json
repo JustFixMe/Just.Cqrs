@@ -1,4 +1,5 @@
 {
     "dotnet.defaultSolution": "Just.Cqrs.sln",
-    "dotnetAcquisitionExtension.enableTelemetry": false
+    "dotnetAcquisitionExtension.enableTelemetry": false,
+    "dotnet.testWindow.useTestingPlatformProtocol": true
 }
